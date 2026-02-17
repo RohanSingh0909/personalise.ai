@@ -125,6 +125,28 @@ export const api = {
         return await safeInvoke("log_approval", { agentId, action, status });
     },
 
+    // ── LinkedIn Agent ───────────────────────────────────
+
+    /** Full flow: Opens Chromium → scrapes Google Trends → posts to LinkedIn */
+    runLinkedInAgent: async (content?: string): Promise<AgentRunResult> => {
+        return await safeInvoke("run_linkedin_agent", { content: content || null });
+    },
+
+    /** Scrape trending topics from Google (no LinkedIn login needed) */
+    scrapeLinkedInTrends: async (): Promise<TrendItem[]> => {
+        return await safeInvoke("scrape_linkedin_trends");
+    },
+
+    /** Post content to LinkedIn (waits for login if needed) */
+    postToLinkedIn: async (content: string): Promise<string> => {
+        return await safeInvoke("post_to_linkedin", { content });
+    },
+
+    /** Get previously scraped trends from DB */
+    getSavedTrends: async (): Promise<TrendItem[]> => {
+        return await safeInvoke("get_saved_trends");
+    },
+
     // Listeners
     onCliOutput: (callback: (output: string) => void) => {
         return safeListen<string>("cli-output", callback);
@@ -138,3 +160,19 @@ export const api = {
         return safeListen<string>("llm-status", callback);
     }
 };
+
+export interface AgentRunResult {
+    trends: TrendItem[];
+    postContent?: string;
+    postResult?: string;
+    message?: string;
+}
+
+export interface TrendItem {
+    title: string;
+    subtitle?: string;
+    author?: string;
+    hashtags?: string[];
+    source?: string;
+    item_type?: string;
+}

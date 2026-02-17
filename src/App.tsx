@@ -3,7 +3,8 @@ import { useAppStore } from './store';
 import { api, type AgentRecord } from './lib/api';
 import { FloatingAssistant } from './components/FloatingAssistant';
 import { ChatPanel } from './components/ChatPanel';
-import { Bot, Calendar, FileText, Settings, Shield, Trash2, Clock, Zap, PlayCircle, Filter } from 'lucide-react';
+import { Bot, Calendar, FileText, Settings, Shield, Trash2, Clock, Zap, PlayCircle, Filter, Globe } from 'lucide-react';
+import { LinkedInPanel } from './components/LinkedInPanel';
 import { SettingsPanel } from "./components/SettingsPanel";
 
 function App() {
@@ -12,27 +13,15 @@ function App() {
   const [agents, setAgents] = useState<AgentRecord[]>([]);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [logFilter, setLogFilter] = useState<string>('all');
-  const [hasGreeted, setHasGreeted] = useState(false);
 
   // Fetch agents whenever the schedule tab is shown
   const fetchAgents = () => {
     api.getAgents().then(setAgents).catch(console.error);
   };
 
-  // G8: On first launch, detect OS and greet user
+  // G8: On first launch, detect OS and initialize
   useEffect(() => {
     checkStatus();
-
-    if (!hasGreeted) {
-      const platform = navigator.platform || 'Unknown OS';
-      addMessage({
-        id: 'welcome-' + Date.now(),
-        role: 'assistant',
-        content: `👋 Welcome to **Personaliz Desktop Assistant**!\n\n🖥️ Detected platform: **${platform}**\n✅ Database: Connected\n✅ Scheduler: Running\n🔒 Sandbox Mode: Enabled\n\nI'm ready to help you create and manage automation agents. Try:\n• "Setup OpenClaw"\n• "Create an agent: Monitor LinkedIn trends daily"\n• "Help"`,
-        timestamp: Date.now()
-      });
-      setHasGreeted(true);
-    }
 
     const unlistenCli = api.onCliOutput((output) => {
       console.log('CLI:', output);
@@ -136,6 +125,7 @@ function App() {
 
         <div className="flex-1 flex flex-col gap-6 w-full px-2">
           <NavButton icon={<FileText size={20} />} active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} tooltip="Overview" />
+          <NavButton icon={<Globe size={20} />} active={activeTab === 'linkedin'} onClick={() => setActiveTab('linkedin')} tooltip="LinkedIn" />
           <NavButton icon={<Calendar size={20} />} active={activeTab === 'schedule'} onClick={() => setActiveTab('schedule')} tooltip="Schedule" badge={agents.length > 0 ? agents.length : undefined} />
           <NavButton icon={<Shield size={20} />} active={activeTab === 'sandbox'} onClick={() => setActiveTab('sandbox')} tooltip="Sandbox Logs" />
           <div className="flex-1" />
@@ -152,12 +142,14 @@ function App() {
             <div>
               <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
                 {activeTab === 'dashboard' && 'Dashboard'}
+                {activeTab === 'linkedin' && 'LinkedIn Automation'}
                 {activeTab === 'schedule' && 'Scheduled Agents'}
                 {activeTab === 'sandbox' && 'Sandbox Activity'}
                 {activeTab === 'settings' && 'Settings'}
               </h1>
               <p className="text-slate-400 mt-1">
                 {activeTab === 'dashboard' && 'Your personal automation center.'}
+                {activeTab === 'linkedin' && 'Scrape trends & post content.'}
                 {activeTab === 'schedule' && `${agents.length} agent${agents.length !== 1 ? 's' : ''} deployed.`}
                 {activeTab === 'sandbox' && 'Review simulated actions.'}
                 {activeTab === 'settings' && 'Configure your assistant.'}
@@ -168,6 +160,7 @@ function App() {
 
         <div className="pt-32 px-8 pb-12 cursor-default">
           {activeTab === 'settings' && <SettingsPanel />}
+          {activeTab === 'linkedin' && <LinkedInPanel />}
           {activeTab === 'dashboard' && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="p-6 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors group cursor-pointer" onClick={() => setActiveTab('schedule')}>
@@ -325,8 +318,8 @@ function App() {
                     key={filter}
                     onClick={() => setLogFilter(filter)}
                     className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${logFilter === filter
-                        ? 'bg-primary text-white shadow-lg shadow-primary/20'
-                        : 'bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 border border-white/5'
+                      ? 'bg-primary text-white shadow-lg shadow-primary/20'
+                      : 'bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 border border-white/5'
                       }`}
                   >
                     <Filter size={12} />

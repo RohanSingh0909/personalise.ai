@@ -80,7 +80,7 @@ export const ChatPanel = () => {
                 addMessage({
                     id: (Date.now() + 1).toString(),
                     role: 'assistant',
-                    content: "Here's what I can do:\n\n🤖 **Create Agents** — Tell me what you want automated and I'll generate a config\n📅 **Schedule Tasks** — Set up cron-based automated workflows\n🔒 **Sandbox Mode** — Test agents safely before going live\n⚙️ **Settings** — Configure API keys for external LLMs\n\nTry: \"Create an agent: Summarize tech news daily at 8am\"",
+                    content: "Here's what I can do:\n\n🤖 **Create Agents** — Tell me what you want automated and I'll generate a config\n📅 **Schedule Tasks** — Set up cron-based automated workflows\n🔗 **LinkedIn Automation**:\n  • \"Connect LinkedIn\" — Open browser to log in\n  • \"Run LinkedIn Trend Monitor\" — Scrape trending topics\n  • \"Post to LinkedIn: [content]\" — Post directly\n🔒 **Sandbox Mode** — Test agents safely before going live\n⚙️ **Settings** — Configure API keys for external LLMs\n\nTry: \"Create an agent: Summarize tech news daily at 8am\"",
                     timestamp: Date.now()
                 });
             }
@@ -101,6 +101,117 @@ export const ChatPanel = () => {
                     content: "To schedule a task, create an agent with a schedule! Try:\n\n• \"Create an agent: Monitor LinkedIn trends and draft a post daily\"\n• \"Create an agent: Comment on #openclaw posts every hour\"\n• \"Create an agent: Summarize tech news daily at 8am\"\n\nOr use the **Quick Start** templates on the Dashboard.",
                     timestamp: Date.now()
                 });
+            }
+            // Run agent intent
+            else if (lowerInput.includes('run ') || lowerInput.includes('execute ')) {
+                // Check if it's a LinkedIn-related agent
+                if (lowerInput.includes('linkedin') || lowerInput.includes('trend')) {
+                    addMessage({
+                        id: (Date.now() + 1).toString(),
+                        role: 'assistant',
+                        content: "🚀 **Running LinkedIn Agent...**\n\nOpening Chromium to:\n1. Scrape Google Trends\n2. Navigate to LinkedIn\n3. Auto-post (or wait for you to log in)\n\nThis may take 30–60 seconds.",
+                        timestamp: Date.now()
+                    });
+
+                    try {
+                        const result = await api.runLinkedInAgent();
+                        const trendList = result.trends.slice(0, 5).map((t, i) =>
+                            `${i + 1}. **${t.title.substring(0, 100)}**`
+                        ).join('\n');
+
+                        addMessage({
+                            id: (Date.now() + 2).toString(),
+                            role: 'assistant',
+                            content: `✅ **Agent finished!** ${result.message || ''}\n\n📊 **Trends found:** ${result.trends.length}\n${trendList}\n\n${result.postResult ? `📤 ${result.postResult}` : ''}\n\n💡 View all trends in the **LinkedIn tab** (Globe icon).`,
+                            timestamp: Date.now()
+                        });
+                    } catch (runErr) {
+                        const errMsg = runErr instanceof Error ? runErr.message : String(runErr);
+                        addMessage({
+                            id: (Date.now() + 2).toString(),
+                            role: 'system',
+                            content: `❌ Agent run failed: ${errMsg}`,
+                            timestamp: Date.now()
+                        });
+                    }
+                } else {
+                    addMessage({
+                        id: (Date.now() + 1).toString(),
+                        role: 'assistant',
+                        content: "I can run LinkedIn-related agents right now! Try:\n\n• **\"Run LinkedIn Trend Monitor\"** — Full flow: scrape Google → post to LinkedIn\n• **\"Scrape trends\"** — Just scrape Google Trends\n• **\"Post to LinkedIn: [content]\"** — Post directly\n\nFor other agents, they run on their schedule. Check the **Scheduled Agents** tab.",
+                        timestamp: Date.now()
+                    });
+                }
+            }
+            // Scrape trends intent
+            else if ((lowerInput.includes('scrape') || lowerInput.includes('fetch') || lowerInput.includes('get')) && (lowerInput.includes('linkedin') || lowerInput.includes('trend'))) {
+                addMessage({
+                    id: (Date.now() + 1).toString(),
+                    role: 'assistant',
+                    content: "🔍 Opening Chromium to scrape Google Trends... This takes 15–30 seconds.",
+                    timestamp: Date.now()
+                });
+
+                try {
+                    const trends = await api.scrapeLinkedInTrends();
+                    const trendList = trends.slice(0, 8).map((t, i) =>
+                        `${i + 1}. **${t.title.substring(0, 120)}**`
+                    ).join('\n');
+
+                    addMessage({
+                        id: (Date.now() + 2).toString(),
+                        role: 'assistant',
+                        content: trends.length > 0
+                            ? `✅ **Found ${trends.length} trends from Google!**\n\n${trendList}\n\n💡 View all in the **LinkedIn tab** (Globe icon).`
+                            : "⚠️ No trends found. The Google Trends page may not have loaded fully. Try again!",
+                        timestamp: Date.now()
+                    });
+                } catch (scrapeErr) {
+                    addMessage({
+                        id: (Date.now() + 2).toString(),
+                        role: 'system',
+                        content: `Scrape failed: ${scrapeErr instanceof Error ? scrapeErr.message : String(scrapeErr)}`,
+                        timestamp: Date.now()
+                    });
+                }
+            }
+            // Post to LinkedIn intent
+            else if (lowerInput.includes('post to linkedin') || lowerInput.includes('post on linkedin')) {
+                const postMatch = input.match(/post (?:to|on) linkedin[:\s]*(.*)/i);
+                const content = postMatch?.[1]?.trim();
+
+                if (content && content.length > 5) {
+                    addMessage({
+                        id: (Date.now() + 1).toString(),
+                        role: 'assistant',
+                        content: `📤 Posting to LinkedIn...\n\n> ${content.substring(0, 100)}${content.length > 100 ? '...' : ''}\n\nChromium will open. If not logged into LinkedIn, you'll have 5 minutes to log in.`,
+                        timestamp: Date.now()
+                    });
+
+                    try {
+                        const result = await api.postToLinkedIn(content);
+                        addMessage({
+                            id: (Date.now() + 2).toString(),
+                            role: 'assistant',
+                            content: `✅ ${result}`,
+                            timestamp: Date.now()
+                        });
+                    } catch (postErr) {
+                        addMessage({
+                            id: (Date.now() + 2).toString(),
+                            role: 'system',
+                            content: `Post failed: ${postErr instanceof Error ? postErr.message : String(postErr)}`,
+                            timestamp: Date.now()
+                        });
+                    }
+                } else {
+                    addMessage({
+                        id: (Date.now() + 1).toString(),
+                        role: 'assistant',
+                        content: "To post on LinkedIn, include your content:\n\n**\"Post to LinkedIn: Your amazing content here\"**\n\nOr go to the **LinkedIn tab** → **Manual Post** for a richer editor with templates.",
+                        timestamp: Date.now()
+                    });
+                }
             }
             // Normal Chat (fallback to LLM)
             else {
@@ -197,14 +308,45 @@ export const ChatPanel = () => {
                                 </div>
 
                                 <div className={`
-                                    max-w-[80%] p-3 rounded-2xl text-sm leading-relaxed
+                                    max-w-[80%] p-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap
                                     ${msg.role === 'user'
-                                        ? 'bg-indigo-600 text-white rounded-tr-sm'
+                                        ? 'bg-indigo-600 text-white rounded-tr-sm shadow-md'
                                         : msg.role === 'system'
-                                            ? 'bg-slate-800 border border-amber-500/30 text-amber-200 font-mono text-xs rounded-tl-sm'
-                                            : 'bg-slate-800 text-slate-200 rounded-tl-sm border border-white/5'}
+                                            ? 'bg-slate-900/80 border border-amber-500/30 text-amber-200 font-mono text-xs rounded-tl-sm'
+                                            : 'bg-slate-800 text-slate-200 rounded-tl-sm border border-white/5 shadow-sm'}
                                 `}>
-                                    {msg.content}
+                                    {msg.content.split('\n').map((line, i) => {
+                                        const trimmedLine = line.trim();
+                                        if (trimmedLine === '' && i > 0) return <div key={i} className="h-2" />;
+
+                                        // Horizontal line
+                                        if (trimmedLine.includes('━━━━')) {
+                                            return <div key={i} className="h-px bg-white/10 my-3 w-full" />;
+                                        }
+
+                                        // Simple markdown formatter for bold/italic
+                                        let formattedLine: any = line;
+                                        if (line.includes('**')) {
+                                            const parts = line.split('**');
+                                            formattedLine = parts.map((part, index) =>
+                                                index % 2 === 1 ? <strong key={index} className="text-white font-bold">{part}</strong> : part
+                                            );
+                                        }
+
+                                        // Bullet points (ensure we don't double them)
+                                        const isBullet = trimmedLine.startsWith('•') || trimmedLine.startsWith('*') || trimmedLine.startsWith('-');
+                                        if (isBullet) {
+                                            const content = trimmedLine.replace(/^[•*-]\s*/, '');
+                                            return (
+                                                <div key={i} className="flex gap-2 ml-1 my-0.5">
+                                                    <span className="text-indigo-400 mt-1 flex-shrink-0">•</span>
+                                                    <span className="text-slate-300">{content}</span>
+                                                </div>
+                                            );
+                                        }
+
+                                        return <div key={i} className="text-slate-300">{formattedLine}</div>;
+                                    })}
                                 </div>
                             </div>
 

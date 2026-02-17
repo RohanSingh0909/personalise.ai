@@ -9,6 +9,7 @@ mod openclaw;
 mod scheduler;
 mod sandbox;
 mod logs; // Used by scheduler but module needs to be available
+mod linkedin;
 
 use tauri::Manager;
 use std::sync::Arc;
@@ -87,7 +88,11 @@ fn main() {
             sandbox::toggle_sandbox,
             save_llm_setting,
             get_llm_setting,
-            log_approval
+            log_approval,
+            linkedin::run_linkedin_agent,
+            linkedin::scrape_linkedin_trends,
+            linkedin::post_to_linkedin,
+            linkedin::get_saved_trends
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -56,7 +56,27 @@ export const useAppStore = create<AppState>((set, get) => ({
     messages: [{
         id: 'welcome',
         role: 'assistant',
-        content: "Hi! I'm your Personaliz Desktop Assistant. I can help you automate tasks with OpenClaw. What would you like to build today?",
+        content: [
+            "👋 **Welcome to Personaliz Desktop Assistant!**",
+            "",
+            "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+            "📋 **SYSTEM STATUS**",
+            `• 🖥️ Platform: **${typeof navigator !== 'undefined' ? navigator.platform : 'Desktop'}**`,
+            "• ✅ Database: Connected",
+            "• ✅ Scheduler: Running",
+            "• 🔒 Sandbox Mode: Enabled",
+            "",
+            "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+            "🚀 **QUICK START**",
+            "",
+            '• Type **"Help"** — View all chat commands',
+            '• Type **"Create an agent: [description]"**',
+            '• Type **"Run LinkedIn Trend Monitor"**',
+            '• Type **"Setup OpenClaw"** — Install core engine',
+            "",
+            "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+            "_Assistant is ready. How can I help you today?_"
+        ].join("\n"),
         timestamp: Date.now()
     }],
     addMessage: (msg) => set((state) => ({ messages: [...state.messages, msg] })),
